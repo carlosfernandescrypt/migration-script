@@ -211,11 +211,63 @@ def apertar_enter(campo_input):
     except Exception as e:
         print(f"Erro ao pressionar Enter: {str(e)}")
 
+def selecionar_pagina_widget():
+    """Aguarda e clica no card 'Página de Widget'."""
+    try:
+        pagina_widget = wait.until(EC.element_to_be_clickable((
+            By.XPATH, "//li[@data-qa-id='cardPageItemDirectory']//p[@title='Página de Widget']"
+        )))
+        pagina_widget.click()
+    except Exception as e:
+        print(f"Erro ao selecionar 'Página de Widget': {str(e)}")
+
+def selecionar_pagina_widget():
+    """Aguarda e clica no card 'Página de Widget'."""
+    try:
+        pagina_widget = wait.until(EC.element_to_be_clickable((
+            By.XPATH, "//li[@data-qa-id='cardPageItemDirectory']//p[@title='Página de Widget']"
+        )))
+        pagina_widget.click()
+    except Exception as e:
+        print(f"Erro ao selecionar 'Página de Widget': {str(e)}")
+
+def selecionar_layout_1_coluna():
+    """Muda para o iframe, aguarda e clica no card '1 Coluna'."""
+    try:
+        iframe = wait.until(EC.presence_of_element_located((By.ID, "addLayoutDialog_iframe_")))
+        driver.switch_to.frame(iframe)
+
+        card_1_coluna = wait.until(EC.element_to_be_clickable((
+            By.XPATH, "//div[contains(@class, 'card-type-template')]//span[@title='1 Coluna']"
+        )))
+        card_1_coluna.click()
+
+        driver.switch_to.default_content()
+
+    except Exception as e:
+        driver.switch_to.default_content()
+        print(f"Erro ao selecionar o layout '1 Coluna': {str(e)}")
+
+
+def selecionar_layout_1_coluna():
+    """Muda para o iframe, aguarda e clica no card '1 Coluna'."""
+    try:
+        card_1_coluna = wait.until(EC.element_to_be_clickable((
+            By.XPATH, "//div[contains(@class, 'card-type-template')]//span[@title='1 Coluna']"
+        )))
+        card_1_coluna.click()
+
+        driver.switch_to.default_content()
+
+    except Exception as e:
+        driver.switch_to.default_content()
+        print(f"Erro ao selecionar o layout '1 Coluna': {str(e)}")
+
+
 def criar_pagina(type):
     if type == "Definida":
         clicar_div_pagina_definida()
         preencher_input_nome()
-        verificar_oculto()
     elif type == "Widget":
         clicar_div_pagina_widget()
         preencher_input_nome()
