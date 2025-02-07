@@ -291,36 +291,44 @@ def pegar_botao_salvar():
         return False
 
 def clicar_label_por_for(valor_for):
-    """Clica em um label baseado no atributo 'for'."""
+    """Clica em um label baseado no atributo 'for' e retorna sucesso."""
     try:
         label = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, f"label[for='{valor_for}']")))
         label.click()
         print(f"Label com 'for'='{valor_for}' clicado com sucesso!")
+        time.sleep(1)  # Aguarda a mudança de estado
+        return True
     except Exception as e:
         print(f"Erro ao clicar no label com 'for'='{valor_for}': {str(e)}")
+        return False
 
-
-
-def criar_pagina(type, page_name):  # Added page_name parameter
+def criar_pagina(type, page):
+    """Função criar_pagina atualizada para usar as informações corretas da página."""
+    page_name = get_page_name_from_hierarchy(page['hierarchy'])
+    
     if type == "Definida":
         clicar_div_pagina_definida()
-        preencher_input_nome(page_name)  # Use page_name instead of valor_extraido
-        clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
-        pegar_conteudo_input_por_id()
+        preencher_input_nome(page_name)
+        url = pegar_conteudo_input_por_id()
+        atualizar_url_amigavel(wb, ws, page['row'], url)
+        return clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
     elif type == "Widget":
         clicar_div_pagina_widget()
-        preencher_input_nome(page_name)  # Use page_name instead of valor_extraido
+        preencher_input_nome(page_name)
         selecionar_layout_1_coluna()
-        pegar_conteudo_input_por_id()
-        clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
+        url = pegar_conteudo_input_por_id()
+        atualizar_url_amigavel(wb, ws, page['row'], url)
+        return clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
     elif type == "Vincular a uma página deste site":
         clicar_div_vincular_pagina_deste_site()
-        preencher_input_nome(page_name)  # Added page_name parameter
+        preencher_input_nome(page_name)
+        return True
     elif type == "Vincular a uma URL":
         clicar_div_vincular_url()
-        preencher_input_nome(page_name)  # Use page_name instead of valor_extraido
-        pegar_conteudo_input_por_id()
-    pass
+        preencher_input_nome(page_name)
+        url = pegar_conteudo_input_por_id()
+        atualizar_url_amigavel(wb, ws, page['row'], url)
+        return True
 
 def get_page_hierarchy(worksheet):
     """Extrai a hierarquia de páginas da planilha."""
@@ -357,23 +365,25 @@ def criar_pagina(type, page):
         clicar_div_pagina_definida()
         preencher_input_nome(page_name)
         url = pegar_conteudo_input_por_id()
-        atualizar_url_amigavel(wb, ws, page['row'], url)  # Pass both wb and ws
-        clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
+        atualizar_url_amigavel(wb, ws, page['row'], url)
+        return clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
     elif type == "Widget":
         clicar_div_pagina_widget()
         preencher_input_nome(page_name)
         selecionar_layout_1_coluna()
         url = pegar_conteudo_input_por_id()
-        atualizar_url_amigavel(wb, ws, page['row'], url)  # Pass both wb and ws
-        clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
+        atualizar_url_amigavel(wb, ws, page['row'], url)
+        return clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
     elif type == "Vincular a uma página deste site":
         clicar_div_vincular_pagina_deste_site()
         preencher_input_nome(page_name)
+        return True
     elif type == "Vincular a uma URL":
         clicar_div_vincular_url()
         preencher_input_nome(page_name)
         url = pegar_conteudo_input_por_id()
-        atualizar_url_amigavel(wb, ws, page['row'], url)  # Pass both wb and ws
+        atualizar_url_amigavel(wb, ws, page['row'], url)
+        return True
 
 def navegar_para_pagina(page_name):
     """Navega para uma página específica clicando em seu link."""
@@ -479,6 +489,7 @@ try:
         max_attempts = 3
         
         for attempt in range(max_attempts):
+            try:
                 print(f"\nProcessando página: {page['name']} (Tentativa {attempt + 1})")
                 
                 # Garantir que estamos na página inicial
@@ -495,17 +506,23 @@ try:
                 # Criar página
                 clicar_botao_novo()
                 clicar_link_pagina()
-                criar_pagina(page['type'], page)
-                
-                # Salvar a página e aguardar conclusão
-                if not pegar_botao_salvar():
-                    raise Exception("Falha ao salvar a página")
+                if criar_pagina(page['type'], page):  # Só continua se o label for clicado com sucesso
+                    # Salvar a página apenas se o label for clicado com sucesso
+                    if pegar_botao_salvar():
+                        success = True
+                        break
+                    else:
+                        raise Exception("Falha ao salvar a página")
+                else:
+                    raise Exception("Falha ao criar página")
                 
                 time.sleep(2)
                 
-                success = True
-                break
-    
+            except Exception as e:
+                print(f"Erro no processamento da página: {str(e)}")
+                if attempt < max_attempts - 1:
+                    print("Tentando novamente...")
+                    time.sleep(2)
         
         if not success:
             print(f"Pulando para próxima página após falha em {page['name']}")
