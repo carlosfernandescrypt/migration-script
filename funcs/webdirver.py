@@ -152,34 +152,25 @@ def clicar_div_vincular_url():
     except Exception as e:
         print(f"Erro ao clicar na div 'Página definida': {str(e)}")
 
-    def preencher_input_nome():
-        """Muda para o iframe, espera 1 segundo, clica no campo de nome, preenche com 'Teste' e pressiona Enter."""
-        try:
-            time.sleep(1)  # Espera antes de executar a função
-
-            iframe = wait.until(EC.presence_of_element_located((By.ID, "addLayoutDialog_iframe_")))
-
-            print("[LOG] Alternando para o iframe...")
-            driver.switch_to.frame(iframe)  # Mudar para dentro do iframe
-
-            campo_nome = wait.until(EC.element_to_be_clickable(
-                (By.ID, "_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_name")
-            ))
-
-            campo_nome.click()  # Garante que o campo seja ativado
-
-            campo_nome.clear()  # Remove qualquer texto anterior
-
-            campo_nome.send_keys("Teste")  # Digita o texto
-
-            campo_nome.send_keys(Keys.RETURN)  # Pressiona Enter para confirmar
-
-            # Retornar ao contexto principal
-            driver.switch_to.default_content()
-
-        except Exception as e:
-            print(f"[ERRO] Falha ao preencher o campo de nome dentro do iframe: {str(e)}")
-            driver.switch_to.default_content()  # Retorna ao contexto principal mesmo em caso de erro
+def preencher_input_nome():
+    """Muda para o iframe, espera 1 segundo, clica no campo de nome, preenche com 'Teste' e pressiona Enter."""
+    try:
+        time.sleep(1)  # Espera antes de executar a função
+        iframe = wait.until(EC.presence_of_element_located((By.ID, "addLayoutDialog_iframe_")))
+        print("[LOG] Alternando para o iframe...")
+        driver.switch_to.frame(iframe)  # Mudar para dentro do iframe
+        campo_nome = wait.until(EC.element_to_be_clickable(
+            (By.ID, "_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_name")
+        ))
+        campo_nome.click()  # Garante que o campo seja ativado
+        campo_nome.clear()  # Remove qualquer texto anterior
+        campo_nome.send_keys("Teste")  # Digita o texto
+        campo_nome.send_keys(Keys.RETURN)  # Pressiona Enter para confirmar
+        # Retornar ao contexto principal
+        driver.switch_to.default_content()
+    except Exception as e:
+        print(f"[ERRO] Falha ao preencher o campo de nome dentro do iframe: {str(e)}")
+        driver.switch_to.default_content()  # Retorna ao contexto principal mesmo em caso de erro
 
 
 def apertar_enter(campo_input):
