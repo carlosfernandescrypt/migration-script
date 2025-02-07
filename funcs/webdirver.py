@@ -22,7 +22,7 @@ driver = webdriver.Chrome(service=service, options=options)
 wait = WebDriverWait(driver, 20)
 
 # Carregar planilha
-wb = load_workbook(caminho_planilha)
+wb = load_workbook("planilha.xlsx")
 ws = wb.active
 
 def fazer_login():
@@ -152,7 +152,7 @@ def clicar_div_vincular_url():
     except Exception as e:
         print(f"Erro ao clicar na div 'Página definida': {str(e)}")
 
-def preencher_input_nome():
+def preencher_input_nome(nome_pagina):
     """Muda para o iframe, espera 1 segundo, clica no campo de nome, preenche com 'Teste' e pressiona Enter."""
     try:
         time.sleep(1)  # Espera antes de executar a função
@@ -164,22 +164,16 @@ def preencher_input_nome():
         ))
         campo_nome.click()  # Garante que o campo seja ativado
         campo_nome.clear()  # Remove qualquer texto anterior
-        campo_nome.send_keys("Teste")  # Digita o texto
+        campo_nome.send_keys(nome_pagina)  # Digita o texto
         campo_nome.send_keys(Keys.RETURN)  # Pressiona Enter para confirmar
         print("[LOG] Campo nome preenchido e Enter pressionado.")
-
-        # Espera a próxima página ser carregada após o Enter
-        print("[LOG] Esperando a próxima página carregar...")
-        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".some-element-on-next-page")))  # Altere este seletor para um que esteja presente na próxima página
-        print("[LOG] Página carregada com sucesso.")
-
-        # Agora você pode interagir com os elementos da nova página, por exemplo:
-        # Interação com campos na nova página
-        campo_novo = wait.until(EC.element_to_be_clickable((By.ID, "id_do_campo_na_nova_pagina")))
-        campo_novo.send_keys("Informação adicional")
         
-        # Opcionalmente, pode pressionar Enter novamente ou realizar outras interações
-        campo_novo.send_keys(Keys.RETURN)
+        # Remova a espera pela próxima página:
+        # print("[LOG] Esperando a próxima página carregar...")
+        # wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".some-element-on-next-page")))  # Não é necessário aguardar agora
+
+        # Agora você pode continuar com o restante do processo sem esperar
+        # Interação com campos na nova página, se necessário
 
         # Retornar ao contexto principal
         driver.switch_to.default_content()
@@ -189,26 +183,20 @@ def preencher_input_nome():
         driver.switch_to.default_content()  # Retorna ao contexto principal mesmo em caso de erro
 
 
+
 def verificar_oculto():
     """Verifica na coluna H da planilha de controle se a página deve ser oculta."""
     try:
-        valor_h4 = ws["H3"].value
-        print(valor_h4)
+        valor_h4 = ws["H8"].value
         if valor_h4 == "Oculta":
             print("A página deve ser oculta.")
-            # Clica no botão de ocultar a página
-            label_ocultar = wait.until(EC.element_to_be_clickable(
-                (By.XPATH, "//label[@for='_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden']")
-            ))
-            label_ocultar.click()
-            print("Página oculta com sucesso.")
+            return True
         else:
             print("A página não deve ser oculta.")
-        return valor_h4 == "Oculta"  # Retorna True se a página deve ser oculta, False caso contrário
+            return False
     except Exception as e:
         print(f"Erro ao verificar se a página deve ser oculta: {str(e)}")
         return False
-
 
 def apertar_enter(campo_input):
     """Simula o pressionamento da tecla Enter no campo de entrada."""
@@ -218,37 +206,218 @@ def apertar_enter(campo_input):
     except Exception as e:
         print(f"Erro ao pressionar Enter: {str(e)}")
 
-def criar_pagina(type):
+def selecionar_pagina_widget():
+    """Aguarda e clica no card 'Página de Widget'."""
+    try:
+        pagina_widget = wait.until(EC.element_to_be_clickable((
+            By.XPATH, "//li[@data-qa-id='cardPageItemDirectory']//p[@title='Página de Widget']"
+        )))
+        pagina_widget.click()
+    except Exception as e:
+        print(f"Erro ao selecionar 'Página de Widget': {str(e)}")
+
+
+
+
+def selecionar_layout_1_coluna():
+    """Muda para o iframe, aguarda e clica no card '1 Coluna'."""
+    try:
+        card_1_coluna = wait.until(EC.element_to_be_clickable((
+            By.XPATH, "//div[contains(@class, 'card-type-template')]//span[@title='1 Coluna']"
+        )))
+        card_1_coluna.click()
+
+        driver.switch_to.default_content()
+
+    except Exception as e:
+        driver.switch_to.default_content()
+        print(f"Erro ao selecionar o layout '1 Coluna': {str(e)}")
+
+def pegar_conteudo_input_por_tag_e_class():
+    """Obtém o conteúdo de um campo de entrada (input) usando tags e classes."""
+    try:
+        # Localiza o campo de input usando a classe e a tag
+        campo_input = wait.until(EC.presence_of_element_located((
+            By.XPATH, "//div[@class='input-group-item']//input[@class='form-control language-value']"
+        )))
+        
+        # Pega o valor do campo de entrada
+        valor = campo_input.get_attribute('value')
+        print(f"Valor do campo de entrada: {valor}")
+        return valor
+    except Exception as e:
+        print(f"Erro ao pegar o conteúdo do campo de entrada: {str(e)}")
+        return None
+
+def pegar_conteudo_input_por_id():
+    """Obtém o conteúdo de um campo de entrada (input) pelo ID."""
+    try:
+        # Localiza o campo de input pelo ID
+        campo_input = wait.until(EC.presence_of_element_located((
+            By.ID, "_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_friendlyURL"
+        )))
+        
+        # Pega o valor do campo de entrada
+        valor = campo_input.get_attribute('value')
+        print(f"Valor do campo de entrada: {valor}")
+        return valor
+    except Exception as e:
+        print(f"Erro ao pegar o conteúdo do campo de entrada: {str(e)}")
+        return None
+
+def pegar_botao_salvar():
+    """Obtém o botão 'Salvar' dentro da div com a classe 'sheet-footer'."""
+    try:
+        # Localiza o botão "Salvar" usando XPath
+        botao_salvar = wait.until(EC.presence_of_element_located((
+            By.XPATH, "//div[@class='sheet-footer']//button[@class='btn btn-primary']//span[text()='Salvar']"
+        )))
+        
+        # Clique no botão
+        botao_salvar.click()
+        print("Botão 'Salvar' clicado com sucesso!")
+    except Exception as e:
+        print(f"Erro ao localizar ou clicar no botão 'Salvar': {str(e)}")
+
+def clicar_label_por_for(valor_for):
+    """Clica em um label baseado no atributo 'for'."""
+    try:
+        label = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, f"label[for='{valor_for}']")))
+        label.click()
+        print(f"Label com 'for'='{valor_for}' clicado com sucesso!")
+    except Exception as e:
+        print(f"Erro ao clicar no label com 'for'='{valor_for}': {str(e)}")
+
+
+
+def criar_pagina(type, page_name):  # Added page_name parameter
     if type == "Definida":
         clicar_div_pagina_definida()
-        preencher_input_nome()
-        time.sleep(1)
-        verificar_oculto()
+        preencher_input_nome(page_name)  # Use page_name instead of valor_extraido
+        pegar_conteudo_input_por_id()
+        clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
     elif type == "Widget":
         clicar_div_pagina_widget()
-        preencher_input_nome()
-        verificar_oculto()
+        preencher_input_nome(page_name)  # Use page_name instead of valor_extraido
+        selecionar_layout_1_coluna()
+        pegar_conteudo_input_por_id()
+        clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
     elif type == "Vincular a uma página deste site":
         clicar_div_vincular_pagina_deste_site()
-        preencher_input_nome()
+        preencher_input_nome(page_name)  # Added page_name parameter
     elif type == "Vincular a uma URL":
         clicar_div_vincular_url()
-        preencher_input_nome()
+        preencher_input_nome(page_name)  # Use page_name instead of valor_extraido
+        pegar_conteudo_input_por_id()
     pass
 
-try:
+def get_page_hierarchy(worksheet):
+    """Extrai a hierarquia de páginas da planilha."""
+    hierarchy = []
+    row = 4  # Começando da linha 4
+    while worksheet[f"P{row}"].value:  # Coluna P contém os tipos de página
+        hierarchy_path = worksheet[f"G{row}"].value.strip()  # Pega o valor da coluna G
+        if hierarchy_path:
+            page = {
+                'name': hierarchy_path.split(" > ")[-1].strip(),  # Último item da hierarquia
+                'type': worksheet[f"P{row}"].value.split(": ", 1)[-1],  # Tipo da página
+                'hierarchy': hierarchy_path,  # Hierarquia completa da coluna G
+                'hidden': worksheet[f"H{row}"].value == "Oculta",
+                'row': row
+            }
+            hierarchy.append(page)
+        row += 1
+    return hierarchy
 
-    # clicar no botão class="dropdown-toggle nav-btn btn btn-primary"
-    clicar_botao_novo()
-    # class="dropdown-item" Página
-    clicar_link_pagina()
+def atualizar_url_amigavel(workbook, worksheet, row, url):
+    """Atualiza a URL amigável na coluna B."""
+    worksheet[f"B{row}"] = url
+    workbook.save("planilha.xlsx")  # Use workbook instead of worksheet
+
+def get_page_name_from_hierarchy(hierarchy_path):
+    """Extrai o último nome da hierarquia (nome real da página)."""
+    return hierarchy_path.split(" > ")[-1].strip()
+
+def criar_pagina(type, page):
+    """Função criar_pagina atualizada para usar as informações corretas da página."""
+    page_name = get_page_name_from_hierarchy(page['hierarchy'])
+    
+    if type == "Definida":
+        clicar_div_pagina_definida()
+        preencher_input_nome(page_name)
+        url = pegar_conteudo_input_por_id()
+        atualizar_url_amigavel(wb, ws, page['row'], url)  # Pass both wb and ws
+        clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
+    elif type == "Widget":
+        clicar_div_pagina_widget()
+        preencher_input_nome(page_name)
+        selecionar_layout_1_coluna()
+        url = pegar_conteudo_input_por_id()
+        atualizar_url_amigavel(wb, ws, page['row'], url)  # Pass both wb and ws
+        clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
+    elif type == "Vincular a uma página deste site":
+        clicar_div_vincular_pagina_deste_site()
+        preencher_input_nome(page_name)
+    elif type == "Vincular a uma URL":
+        clicar_div_vincular_url()
+        preencher_input_nome(page_name)
+        url = pegar_conteudo_input_por_id()
+        atualizar_url_amigavel(wb, ws, page['row'], url)  # Pass both wb and ws
+
+def navegar_para_pagina(page_name):
+    """Navega para uma página específica clicando em seu link."""
+    try:
+        # Espera o elemento ficar clicável e clica nele
+        page_link = wait.until(EC.element_to_be_clickable((
+            By.XPATH, f"//span[contains(@class, 'c-inner') and text()='{page_name}']"
+        )))
+        page_link.click()
+        time.sleep(1)  # Pequena pausa para garantir o carregamento
+        return True
+    except Exception as e:
+        print(f"Erro ao navegar para a página {page_name}: {str(e)}")
+        return False
+
+def get_parent_page(hierarchy_path):
+    """Retorna o nome da página pai baseado no caminho da hierarquia da coluna G."""
+    parts = hierarchy_path.split(" > ")
+    return parts[-2].strip() if len(parts) > 1 else None
+
+try:
+    # Extrair todas as páginas e suas hierarquias
+    pages = get_page_hierarchy(ws)
+
     valor_p4 = ws["P4"].value
     valor_extraido = valor_p4.split(": ", 1)[-1]
 
     print(f"Valor da célula P4: {valor_extraido}")
 
-    criar_pagina(valor_extraido)
+    for page in pages:
+        print(f"\nProcessando página: {page['name']}")
+        print(f"Hierarquia completa: {page['hierarchy']}")
+        
+        # Se tiver uma página pai, navegar até ela primeiro
+        parent = get_parent_page(page['hierarchy'])
+        if parent and parent != "Raiz":
+            print(f"Navegando para a página pai: {parent}")
+            navegar_para_pagina(parent)
+        
+        # Criar a nova página
+        clicar_botao_novo()
+        clicar_link_pagina()
+        
+        # Criar a página com o tipo específico
+        criar_pagina(page['type'], page)
+        
+        # Aguardar um momento para a página ser criada
+        time.sleep(2)
+        
+        # Voltar para a raiz se necessário
+        if parent:
+            # Clicar no botão de voltar ou navegar para a raiz
+            driver.get(url_base + "/group/guest/~/control_panel/manage")
+            time.sleep(1)
 
 finally:
-    #wb.close()
-    print("Planilha fechada.")
+    wb.close()
+    driver.quit()
