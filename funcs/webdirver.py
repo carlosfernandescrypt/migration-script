@@ -266,18 +266,29 @@ def pegar_conteudo_input_por_id():
         return None
 
 def pegar_botao_salvar():
-    """Obtém o botão 'Salvar' dentro da div com a classe 'sheet-footer'."""
+    """Obtém e clica no botão 'Salvar' com retry e verificação de sucesso."""
     try:
-        # Localiza o botão "Salvar" usando XPath
-        botao_salvar = wait.until(EC.presence_of_element_located((
-            By.XPATH, "//div[@class='sheet-footer']//button[@class='btn btn-primary']//span[text()='Salvar']"
-        )))
-        
-        # Clique no botão
-        botao_salvar.click()
-        print("Botão 'Salvar' clicado com sucesso!")
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                # Localiza o botão "Salvar" usando XPath
+                botao_salvar = wait.until(EC.element_to_be_clickable((
+                    By.XPATH, "//div[@class='sheet-footer']//button[@class='btn btn-primary']//span[text()='Salvar']"
+                )))
+                
+                # Clique no botão
+                botao_salvar.click()
+                print("Botão 'Salvar' clicado com sucesso!")
+                
+            except Exception as e:
+                print(f"Tentativa {attempt + 1} falhou ao salvar: {str(e)}")
+                if attempt == max_attempts - 1:
+                    raise
+                time.sleep(2)
+                
     except Exception as e:
-        print(f"Erro ao localizar ou clicar no botão 'Salvar': {str(e)}")
+        print(f"Erro ao salvar página: {str(e)}")
+        return False
 
 def clicar_label_por_for(valor_for):
     """Clica em um label baseado no atributo 'for'."""
@@ -294,8 +305,8 @@ def criar_pagina(type, page_name):  # Added page_name parameter
     if type == "Definida":
         clicar_div_pagina_definida()
         preencher_input_nome(page_name)  # Use page_name instead of valor_extraido
-        pegar_conteudo_input_por_id()
         clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
+        pegar_conteudo_input_por_id()
     elif type == "Widget":
         clicar_div_pagina_widget()
         preencher_input_nome(page_name)  # Use page_name instead of valor_extraido
@@ -383,41 +394,126 @@ def get_parent_page(hierarchy_path):
     parts = hierarchy_path.split(" > ")
     return parts[-2].strip() if len(parts) > 1 else None
 
+def clicar_botao_voltar():
+    """Clica no botão de voltar usando o ícone específico."""
+    try:
+        botao_voltar = wait.until(EC.element_to_be_clickable((
+            By.CSS_SELECTOR, ".lexicon-icon.lexicon-icon-angle-left"
+        )))
+        botao_voltar.click()
+        time.sleep(1)
+    except Exception as e:
+        print(f"Erro ao clicar no botão voltar: {str(e)}")
+
+def clicar_card_pagina(nome_pagina):
+    """Clica no card da página específica."""
+    try:
+        xpath = f"//a[contains(@class, 'miller-columns-item-mask')]//span[contains(@class, 'c-inner') and contains(text(), '{nome_pagina}')]"
+        card = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
+        card.click()
+        time.sleep(1)
+        return True
+    except Exception as e:
+        print(f"Erro ao clicar no card da página {nome_pagina}: {str(e)}")
+        return False
+
+def clicar_link_pagina_filha(nome_pagina_pai):
+    """Clica no link 'Adicionar página filha' específico para a página pai."""
+    try:
+        xpath = f"//a[contains(text(), 'Adicionar página filha de {nome_pagina_pai}')]"
+        link = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
+        link.click()
+        time.sleep(1)
+    except Exception as e:
+        print(f"Erro ao clicar no link de página filha: {str(e)}")
+
+def navegar_hierarquia(hierarchy_path):
+    """Navega através da hierarquia de páginas."""
+    parts = hierarchy_path.split(" > ")
+    if len(parts) > 2:  # Se tiver mais níveis além de "Raiz"
+        for parent in parts[1:-1]:  # Ignora "Raiz" e a última parte
+            if not clicar_card_pagina(parent):
+                print(f"Não foi possível navegar até {parent}")
+                return False
+        return True
+    return True
+
+def mudar_url():
+    """Volta para a página inicial do painel de controle com verificação."""
+    try:
+        print("Voltando para página inicial...")
+        driver.get(url_base)
+        
+        # Aguarda a página carregar completamente
+        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+        
+        # Aguarda e clica no painel de administração
+        admin_link = wait.until(EC.element_to_be_clickable((
+            By.ID, "panel-manage-site_administration_build-link"
+        )))
+        admin_link.click()
+        
+        # Aguarda e clica na seção de páginas
+        pages_link = wait.until(EC.element_to_be_clickable((
+            By.ID, "_com_liferay_product_navigation_product_menu_web_portlet_ProductMenuPortlet_portlet_com_liferay_layout_admin_web_portlet_GroupPagesPortlet"
+        )))
+        pages_link.click()
+        
+        # Aguarda a listagem de páginas carregar
+        wait.until(EC.presence_of_element_located((
+            By.CSS_SELECTOR, ".miller-columns-item-mask"
+        )))
+        
+        time.sleep(1)
+        print("Retornou para página inicial com sucesso!")
+        return True
+    except Exception as e:
+        print(f"Erro ao voltar para página inicial: {str(e)}")
+        return False
+
 try:
-    # Extrair todas as páginas e suas hierarquias
     pages = get_page_hierarchy(ws)
-
-    valor_p4 = ws["P4"].value
-    valor_extraido = valor_p4.split(": ", 1)[-1]
-
-    print(f"Valor da célula P4: {valor_extraido}")
-
+    
     for page in pages:
-        print(f"\nProcessando página: {page['name']}")
-        print(f"Hierarquia completa: {page['hierarchy']}")
+        success = False
+        max_attempts = 3
         
-        # Se tiver uma página pai, navegar até ela primeiro
-        parent = get_parent_page(page['hierarchy'])
-        if parent and parent != "Raiz":
-            print(f"Navegando para a página pai: {parent}")
-            navegar_para_pagina(parent)
+        for attempt in range(max_attempts):
+                print(f"\nProcessando página: {page['name']} (Tentativa {attempt + 1})")
+                
+                # Garantir que estamos na página inicial
+                if not mudar_url():
+                    raise Exception("Falha ao voltar para página inicial")
+                
+                # Verificar hierarquia e navegar se necessário
+                parent = get_parent_page(page['hierarchy'])
+                if parent and parent != "Raiz":
+                    print(f"Navegando pela hierarquia: {page['hierarchy']}")
+                    if not navegar_hierarquia(page['hierarchy']):
+                        raise Exception("Falha na navegação da hierarquia")
+                
+                # Criar página
+                clicar_botao_novo()
+                clicar_link_pagina()
+                criar_pagina(page['type'], page)
+                
+                # Salvar a página e aguardar conclusão
+                if not pegar_botao_salvar():
+                    raise Exception("Falha ao salvar a página")
+                
+                time.sleep(2)
+                
+                success = True
+                break
+    
         
-        # Criar a nova página
-        clicar_botao_novo()
-        clicar_link_pagina()
-        
-        # Criar a página com o tipo específico
-        criar_pagina(page['type'], page)
-        
-        # Aguardar um momento para a página ser criada
-        time.sleep(2)
-        
-        # Voltar para a raiz se necessário
-        if parent:
-            # Clicar no botão de voltar ou navegar para a raiz
-            driver.get(url_base + "/group/guest/~/control_panel/manage")
-            time.sleep(1)
+        if not success:
+            print(f"Pulando para próxima página após falha em {page['name']}")
+            continue
 
 finally:
-    wb.close()
-    driver.quit()
+    try:
+        wb.close()
+        driver.quit()
+    except:
+        pass
