@@ -10,7 +10,7 @@ from selenium.webdriver.common.keys import Keys
 
 # Configurações
 url_base = "http://localhost:8080"
-caminho_planilha = "./planilhas/planilha.xlsx"
+caminho_planilha = "planilha.xlsx"
 
 # Inicialização do WebDriver
 service = Service(ChromeDriverManager().install())
@@ -52,7 +52,7 @@ def fazer_login():
             (By.ID, "_com_liferay_login_web_portlet_LoginPortlet_password")
         ))
         campo_senha.clear()
-        campo_senha.send_keys("admin")
+        campo_senha.send_keys("1234")
         
         # Clicar no botão de entrar
         print("Clicando no botão de entrar...")
@@ -166,12 +166,42 @@ def preencher_input_nome():
         campo_nome.clear()  # Remove qualquer texto anterior
         campo_nome.send_keys("Teste")  # Digita o texto
         campo_nome.send_keys(Keys.RETURN)  # Pressiona Enter para confirmar
+        print("[LOG] Campo nome preenchido e Enter pressionado.")
+
+        # Espera a próxima página ser carregada após o Enter
+        print("[LOG] Esperando a próxima página carregar...")
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".some-element-on-next-page")))  # Altere este seletor para um que esteja presente na próxima página
+        print("[LOG] Página carregada com sucesso.")
+
+        # Agora você pode interagir com os elementos da nova página, por exemplo:
+        # Interação com campos na nova página
+        campo_novo = wait.until(EC.element_to_be_clickable((By.ID, "id_do_campo_na_nova_pagina")))
+        campo_novo.send_keys("Informação adicional")
+        
+        # Opcionalmente, pode pressionar Enter novamente ou realizar outras interações
+        campo_novo.send_keys(Keys.RETURN)
+
         # Retornar ao contexto principal
         driver.switch_to.default_content()
+
     except Exception as e:
         print(f"[ERRO] Falha ao preencher o campo de nome dentro do iframe: {str(e)}")
         driver.switch_to.default_content()  # Retorna ao contexto principal mesmo em caso de erro
 
+
+def verificar_oculto():
+    """Verifica na coluna H da planilha de controle se a página deve ser oculta."""
+    try:
+        valor_h4 = ws["H4"].value
+        if valor_h4 == "Oculta":
+            print("A página deve ser oculta.")
+            return True
+        else:
+            print("A página não deve ser oculta.")
+            return False
+    except Exception as e:
+        print(f"Erro ao verificar se a página deve ser oculta: {str(e)}")
+        return False
 
 def apertar_enter(campo_input):
     """Simula o pressionamento da tecla Enter no campo de entrada."""
@@ -185,9 +215,11 @@ def criar_pagina(type):
     if type == "Definida":
         clicar_div_pagina_definida()
         preencher_input_nome()
+        verificar_oculto()
     elif type == "Widget":
         clicar_div_pagina_widget()
         preencher_input_nome()
+        verificar_oculto()
     elif type == "Vincular a uma página deste site":
         clicar_div_vincular_pagina_deste_site()
         preencher_input_nome()
@@ -210,5 +242,5 @@ try:
     criar_pagina(valor_extraido)
 
 finally:
-    wb.close()
+    #wb.close()
     print("Planilha fechada.")
