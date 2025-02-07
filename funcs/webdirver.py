@@ -10,7 +10,7 @@ from selenium.webdriver.common.keys import Keys
 
 # Configurações
 url_base = "http://localhost:8080"
-caminho_planilha = "planilha.xlsx"
+caminho_planilha = "/funcs/planilha.xlsx"
 
 # Inicialização do WebDriver
 service = Service(ChromeDriverManager().install())
@@ -22,7 +22,7 @@ driver = webdriver.Chrome(service=service, options=options)
 wait = WebDriverWait(driver, 20)
 
 # Carregar planilha
-wb = load_workbook(caminho_planilha)
+wb = load_workbook("funcs/planilha.xlsx")
 ws = wb.active
 
 def fazer_login():
@@ -52,7 +52,7 @@ def fazer_login():
             (By.ID, "_com_liferay_login_web_portlet_LoginPortlet_password")
         ))
         campo_senha.clear()
-        campo_senha.send_keys("1234")
+        campo_senha.send_keys("admin")
         
         # Clicar no botão de entrar
         print("Clicando no botão de entrar...")
@@ -279,6 +279,16 @@ def pegar_botao_salvar():
     except Exception as e:
         print(f"Erro ao localizar ou clicar no botão 'Salvar': {str(e)}")
 
+def clicar_label_por_for(valor_for):
+    """Clica em um label baseado no atributo 'for'."""
+    try:
+        label = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, f"label[for='{valor_for}']")))
+        label.click()
+        print(f"Label com 'for'='{valor_for}' clicado com sucesso!")
+    except Exception as e:
+        print(f"Erro ao clicar no label com 'for'='{valor_for}': {str(e)}")
+
+
 
 def criar_pagina(type):
     if type == "Definida":
@@ -290,6 +300,7 @@ def criar_pagina(type):
         preencher_input_nome(valor_extraido_pw)
         selecionar_layout_1_coluna()
         pegar_conteudo_input_por_id()
+        clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden")
     elif type == "Vincular a uma página deste site":
         clicar_div_vincular_pagina_deste_site()
         preencher_input_nome()
