@@ -52,7 +52,7 @@ def fazer_login():
             (By.ID, "_com_liferay_login_web_portlet_LoginPortlet_password")
         ))
         campo_senha.clear()
-        campo_senha.send_keys("admin")
+        campo_senha.send_keys("1234")
         
         # Clicar no botão de entrar
         print("Clicando no botão de entrar...")
@@ -125,10 +125,39 @@ def clicar_div_pagina_definida():
     except Exception as e:
         print(f"Erro ao clicar na div 'Página definida': {str(e)}")
 
+def clicar_div_pagina_widget():
+    """Clica na div 'Página Widget'."""
+    try:
+        div_pagina_widget = wait.until(EC.element_to_be_clickable((By.XPATH, "//p[@class='card-title' and @title='Página de Widget']//span[text()='Página de Widget']")))
+        div_pagina_widget.click()
+        time.sleep(1)
+    except Exception as e:
+        print(f"Erro ao clicar na div 'Página definida': {str(e)}")
+
+def clicar_div_vincular_pagina_deste_site():
+    """Clica na div 'Vincular Pagina Deste Site'."""
+    try:
+        clicar_div_vincular_pagina_deste_site = wait.until(EC.element_to_be_clickable((By.XPATH, "//p[@class='card-title' and @title='Vincular a uma página deste site']//span[text()='Vincular a uma página deste site']")))
+        clicar_div_vincular_pagina_deste_site.click()
+        time.sleep(1)
+    except Exception as e:
+        print(f"Erro ao clicar na div 'Página definid': {str(e)}")
+
+def clicar_div_vincular_url():
+    """Clica na div 'Vincular Url'."""
+    try:
+        div_vincular_url = wait.until(EC.element_to_be_clickable((By.XPATH, "//p[@class='card-title' and @title='Vincular a uma URL']//span[text()='Vincular a uma URL']")))
+        div_vincular_url.click()
+        time.sleep(1)
+    except Exception as e:
+        print(f"Erro ao clicar na div 'Página definida': {str(e)}")
+
 def preencher_input_nome():
     """Preenche o campo de nome com 'Teste'."""
     try:
-        campo_nome = wait.until(EC.element_to_be_clickable((By.ID, "_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_name")))
+        iframe = wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
+        driver.switch_to.frame(iframe)
+        campo_nome = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='Adicionar nome de página']")))
         campo_nome.clear()
         campo_nome.send_keys("Teste")
         time.sleep(1)
@@ -148,11 +177,14 @@ def criar_pagina(type):
         clicar_div_pagina_definida()
         preencher_input_nome()
     elif type == "Widget":
-        pass
+        clicar_div_pagina_widget()
+        preencher_input_nome()
     elif type == "Vincular a uma página deste site":
-        pass
-    elif type == "Vincular a uma página deste site":
-        pass
+        clicar_div_vincular_pagina_deste_site()
+        preencher_input_nome()
+    elif type == "Vincular a uma URL":
+        clicar_div_vincular_url()
+        preencher_input_nome()
     pass
 
 try:
@@ -169,6 +201,5 @@ try:
     criar_pagina(valor_extraido)
 
 finally:
-    # Fechar a planilha corretamente
     wb.close()
     print("Planilha fechada.")
