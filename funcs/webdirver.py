@@ -10,7 +10,7 @@ from selenium.webdriver.common.keys import Keys
 
 # Configurações
 url_base = "http://localhost:8080"
-caminho_planilha = "planilha.xlsx"
+caminho_planilha = "funcs/planilha.xlsx"
 
 # Inicialização do WebDriver
 service = Service(ChromeDriverManager().install())
@@ -52,7 +52,7 @@ def fazer_login():
             (By.ID, "_com_liferay_login_web_portlet_LoginPortlet_password")
         ))
         campo_senha.clear()
-        campo_senha.send_keys("1234")
+        campo_senha.send_keys("admin")
         
         # Clicar no botão de entrar
         print("Clicando no botão de entrar...")
@@ -167,19 +167,13 @@ def preencher_input_nome():
         campo_nome.send_keys("Teste")  # Digita o texto
         campo_nome.send_keys(Keys.RETURN)  # Pressiona Enter para confirmar
         print("[LOG] Campo nome preenchido e Enter pressionado.")
-
-        # Espera a próxima página ser carregada após o Enter
-        print("[LOG] Esperando a próxima página carregar...")
-        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".some-element-on-next-page")))  # Altere este seletor para um que esteja presente na próxima página
-        print("[LOG] Página carregada com sucesso.")
-
-        # Agora você pode interagir com os elementos da nova página, por exemplo:
-        # Interação com campos na nova página
-        campo_novo = wait.until(EC.element_to_be_clickable((By.ID, "id_do_campo_na_nova_pagina")))
-        campo_novo.send_keys("Informação adicional")
         
-        # Opcionalmente, pode pressionar Enter novamente ou realizar outras interações
-        campo_novo.send_keys(Keys.RETURN)
+        # Remova a espera pela próxima página:
+        # print("[LOG] Esperando a próxima página carregar...")
+        # wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".some-element-on-next-page")))  # Não é necessário aguardar agora
+
+        # Agora você pode continuar com o restante do processo sem esperar
+        # Interação com campos na nova página, se necessário
 
         # Retornar ao contexto principal
         driver.switch_to.default_content()
@@ -187,6 +181,7 @@ def preencher_input_nome():
     except Exception as e:
         print(f"[ERRO] Falha ao preencher o campo de nome dentro do iframe: {str(e)}")
         driver.switch_to.default_content()  # Retorna ao contexto principal mesmo em caso de erro
+
 
 
 def verificar_oculto():
@@ -221,33 +216,6 @@ def selecionar_pagina_widget():
     except Exception as e:
         print(f"Erro ao selecionar 'Página de Widget': {str(e)}")
 
-def selecionar_pagina_widget():
-    """Aguarda e clica no card 'Página de Widget'."""
-    try:
-        pagina_widget = wait.until(EC.element_to_be_clickable((
-            By.XPATH, "//li[@data-qa-id='cardPageItemDirectory']//p[@title='Página de Widget']"
-        )))
-        pagina_widget.click()
-    except Exception as e:
-        print(f"Erro ao selecionar 'Página de Widget': {str(e)}")
-
-def selecionar_layout_1_coluna():
-    """Muda para o iframe, aguarda e clica no card '1 Coluna'."""
-    try:
-        iframe = wait.until(EC.presence_of_element_located((By.ID, "addLayoutDialog_iframe_")))
-        driver.switch_to.frame(iframe)
-
-        card_1_coluna = wait.until(EC.element_to_be_clickable((
-            By.XPATH, "//div[contains(@class, 'card-type-template')]//span[@title='1 Coluna']"
-        )))
-        card_1_coluna.click()
-
-        driver.switch_to.default_content()
-
-    except Exception as e:
-        driver.switch_to.default_content()
-        print(f"Erro ao selecionar o layout '1 Coluna': {str(e)}")
-
 
 def selecionar_layout_1_coluna():
     """Muda para o iframe, aguarda e clica no card '1 Coluna'."""
@@ -262,12 +230,60 @@ def selecionar_layout_1_coluna():
     except Exception as e:
         driver.switch_to.default_content()
         print(f"Erro ao selecionar o layout '1 Coluna': {str(e)}")
+
+def pegar_conteudo_input_por_tag_e_class():
+    """Obtém o conteúdo de um campo de entrada (input) usando tags e classes."""
+    try:
+        # Localiza o campo de input usando a classe e a tag
+        campo_input = wait.until(EC.presence_of_element_located((
+            By.XPATH, "//div[@class='input-group-item']//input[@class='form-control language-value']"
+        )))
+        
+        # Pega o valor do campo de entrada
+        valor = campo_input.get_attribute('value')
+        print(f"Valor do campo de entrada: {valor}")
+        return valor
+    except Exception as e:
+        print(f"Erro ao pegar o conteúdo do campo de entrada: {str(e)}")
+        return None
+
+def pegar_conteudo_input_por_id():
+    """Obtém o conteúdo de um campo de entrada (input) pelo ID."""
+    try:
+        # Localiza o campo de input pelo ID
+        campo_input = wait.until(EC.presence_of_element_located((
+            By.ID, "_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_friendlyURL"
+        )))
+        
+        # Pega o valor do campo de entrada
+        valor = campo_input.get_attribute('value')
+        print(f"Valor do campo de entrada: {valor}")
+        return valor
+    except Exception as e:
+        print(f"Erro ao pegar o conteúdo do campo de entrada: {str(e)}")
+        return None
+
+def pegar_botao_salvar():
+    """Obtém o botão 'Salvar' dentro da div com a classe 'sheet-footer'."""
+    try:
+        # Localiza o botão "Salvar" usando XPath
+        botao_salvar = wait.until(EC.presence_of_element_located((
+            By.XPATH, "//div[@class='sheet-footer']//button[@class='btn btn-primary']//span[text()='Salvar']"
+        )))
+        
+        # Clique no botão
+        botao_salvar.click()
+        print("Botão 'Salvar' clicado com sucesso!")
+    except Exception as e:
+        print(f"Erro ao localizar ou clicar no botão 'Salvar': {str(e)}")
 
 
 def criar_pagina(type):
     if type == "Definida":
-        clicar_div_pagina_definida()
+        clicar_div_pagina_widget()
         preencher_input_nome()
+        selecionar_layout_1_coluna()
+        pegar_conteudo_input_por_id()
     elif type == "Widget":
         clicar_div_pagina_widget()
         preencher_input_nome()
