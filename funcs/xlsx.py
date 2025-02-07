@@ -128,4 +128,9 @@ def pegar_itens_colunas_ph(ws):
     except Exception as e:
         print(f"Erro ao acessar os itens das colunas P e H: {str(e)}")
         return []
+    
 
+
+""" wb, ws = carregar_planilha()
+itens_colunas_ph = pegar_itens_colunas_ph(ws)
+print(itens_colunas_ph) """
