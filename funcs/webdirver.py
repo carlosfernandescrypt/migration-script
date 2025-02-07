@@ -310,12 +310,24 @@ def selecionar_botao_selecionar():
     except Exception as e:
         print(f"Erro ao selecionar o botão 'Selecionar': {str(e)}")
 
+def mudar_url(nova_url):
+    """Navega para uma nova URL no navegador controlado pelo Selenium."""
+    try:
+        print(f"Acessando a URL: {nova_url}")
+        driver.get(nova_url)
+        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))  # Aguarda o carregamento da página
+        print("Página carregada com sucesso!")
+    except Exception as e:
+        print(f"Erro ao acessar a URL {nova_url}: {str(e)}")
+
+
 
 def criar_pagina(type):
     if type == "Definida":
         clicar_div_pagina_definida()
         preencher_input_nome(valor_extraido_pd)
         pegar_conteudo_input_por_id()
+        mudar_url("{url_base}/home")
     elif type == "Widget":
         clicar_div_pagina_widget()
         preencher_input_nome(valor_extraido_pw)
@@ -347,7 +359,7 @@ try:
 
     print(f"Valor da célula P4: {valor_extraido_pw}")
 
-    criar_pagina(valor_extraido_vpds)
+    criar_pagina(valor_extraido_pd)
 
 finally:
     #wb.close()
