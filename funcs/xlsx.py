@@ -3,6 +3,7 @@ from openpyxl import load_workbook
 # Caminho da planilha
 caminho_planilha = "funcs/planilha.xlsx"
 
+
 # Carregar planilha
 def carregar_planilha():
     """Carrega a planilha e retorna a planilha e a aba ativa."""
@@ -49,3 +50,78 @@ def pegar_conteudo_input_por_id(ws):
     except Exception as e:
         print(f"Erro ao pegar o conteúdo da célula: {str(e)}")
         return None
+
+def verificar_e_filtrar_tipo_pagina(ws):
+    """Verifica o tipo de página nas células da coluna P, filtra o texto após ': ', remove páginas vinculadas e valores '-', e retorna um dicionário com os itens e seus respectivos status de visibilidade no formato 'visibilidade': ['tipo de pagina']."""
+    try:
+        result = {}  # Dicionário para armazenar os resultados
+        max_linhas = ws.max_row  # Número máximo de linhas da planilha
+        
+        for linha in range(4, max_linhas + 1):  # Itera da linha 4 até o final
+            tipo_pagina = ws[f"P{linha}"].value  # Pega o valor da célula na coluna P da linha atual (tipo de página)
+            visibilidade = ws[f"H{linha}"].value  # Pega o valor da célula na coluna H da linha atual (status de visibilidade)
+            
+            if tipo_pagina:  # Verifica se o valor de tipo de página não é None ou vazio
+                # Extrai o valor após ": " para o tipo de página
+                tipo_extraido = tipo_pagina.split(": ", 1)[-1] if ": " in tipo_pagina else tipo_pagina
+                
+                # Verifica se não é um valor de página vinculada ou "-"
+                if "Vincular a uma página deste site" not in tipo_extraido and tipo_extraido != '-':
+                    # Adiciona o tipo de página com seu status de visibilidade
+                    if visibilidade == "Oculta":
+                        if "Oculto" not in result:
+                            result["Oculto"] = []  # Inicializa a lista para "Oculto"
+                        result["Oculto"].append(tipo_extraido)
+                    elif visibilidade == "Menu":
+                        if "Menu" not in result:
+                            result["Menu"] = []  # Inicializa a lista para "Menu"
+                        result["Menu"].append(tipo_extraido)
+                    else:
+                        if "undefined" not in result:
+                            result["undefined"] = []  # Inicializa a lista para "undefined"
+                        result["undefined"].append(tipo_extraido)  # Para outros valores ou células vazias
+                else:
+                    if "undefined" not in result:
+                        result["undefined"] = []  # Inicializa a lista para "undefined"
+                    result["undefined"].append("undefined-page")  # Marca como "undefined-page" se for "-"
+        
+        # Retorna o dicionário com os tipos e status das páginas
+        return result
+    except Exception as e:
+        print(f"Erro ao verificar e filtrar os tipos de página: {str(e)}")
+        return {}
+
+def pegar_itens_colunas_ph(ws):
+    """
+    Acessa os itens das colunas P e H a partir da linha 4 até o final da planilha.
+    
+    Parâmetros:
+    - ws: Objeto da planilha.
+    
+    Retorna:
+    - lista de tuplas, onde cada tupla contém o valor da coluna P e o valor da coluna H
+      para a mesma linha, com substituições de valores conforme necessário.
+    """
+    try:
+        itens = []  # Lista para armazenar os itens encontrados
+        max_linhas = ws.max_row  # Número máximo de linhas da planilha
+        
+        # Itera da linha 4 até a última linha
+        for linha in range(4, max_linhas + 1):
+            valor_p = ws[f"P{linha}"].value  # Pega o valor da célula na coluna P
+            valor_h = ws[f"H{linha}"].value  # Pega o valor da célula na coluna H
+            
+            # Substitui valores "-" por "undefined-visible" e "undefined-pageType"
+            if valor_p == "-":
+                valor_p = "undefined-pageType"
+            if valor_h == "-":
+                valor_h = "undefined-visible"
+            
+            if valor_p and valor_h:  # Verifica se ambos os valores não são None
+                itens.append((valor_h, valor_p))  # Adiciona os valores como tupla à lista
+        
+        return itens  # Retorna a lista de itens encontrados
+    
+    except Exception as e:
+        print(f"Erro ao acessar os itens das colunas P e H: {str(e)}")
+        return []
