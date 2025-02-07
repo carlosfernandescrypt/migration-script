@@ -1,3 +1,11 @@
+#acessar pasta raiz:
+
+import sys
+import os
+
+# Adiciona a pasta raiz ao caminho de pesquisa de módulos
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -7,11 +15,14 @@ from openpyxl import load_workbook
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.keys import Keys
+from config  import BASE_URL, PATH_PLANILHA, PASSWORD, EMAIL
+
 
 # Configurações
-url_base = "http://localhost:8080"
-caminho_planilha = "funcs/planilha.xlsx"
-
+url_base = BASE_URL
+caminho_planilha = PATH_PLANILHA
+password = PASSWORD
+email = EMAIL
 # Inicialização do WebDriver
 service = Service(ChromeDriverManager().install())
 options = webdriver.ChromeOptions()
@@ -44,7 +55,7 @@ def fazer_login():
             (By.CSS_SELECTOR, ".field.clearable.form-control")
         ))
         campo_email.clear()
-        campo_email.send_keys("test@liferay.com")
+        campo_email.send_keys(email)
         
         # Preencher senha
         print("Preenchendo senha...")
@@ -52,7 +63,7 @@ def fazer_login():
             (By.ID, "_com_liferay_login_web_portlet_LoginPortlet_password")
         ))
         campo_senha.clear()
-        campo_senha.send_keys("admin")
+        campo_senha.send_keys(password)
         
         # Clicar no botão de entrar
         print("Clicando no botão de entrar...")
@@ -152,7 +163,7 @@ def clicar_div_vincular_url():
     except Exception as e:
         print(f"Erro ao clicar na div 'Página definida': {str(e)}")
 
-def preencher_input_nome():
+def preencher_input_nome(nome_pagina):
     """Muda para o iframe, espera 1 segundo, clica no campo de nome, preenche com 'Teste' e pressiona Enter."""
     try:
         time.sleep(1)  # Espera antes de executar a função
@@ -164,7 +175,7 @@ def preencher_input_nome():
         ))
         campo_nome.click()  # Garante que o campo seja ativado
         campo_nome.clear()  # Remove qualquer texto anterior
-        campo_nome.send_keys("Teste")  # Digita o texto
+        campo_nome.send_keys(nome_pagina)  # Digita o texto
         campo_nome.send_keys(Keys.RETURN)  # Pressiona Enter para confirmar
         print("[LOG] Campo nome preenchido e Enter pressionado.")
         
@@ -215,6 +226,8 @@ def selecionar_pagina_widget():
         pagina_widget.click()
     except Exception as e:
         print(f"Erro ao selecionar 'Página de Widget': {str(e)}")
+
+
 
 
 def selecionar_layout_1_coluna():
@@ -277,20 +290,55 @@ def pegar_botao_salvar():
     except Exception as e:
         print(f"Erro ao localizar ou clicar no botão 'Salvar': {str(e)}")
 
+def clicar_label_por_for(valor_for):
+    """Clica em um label baseado no atributo 'for'."""
+    try:
+        label = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, f"label[for='{valor_for}']")))
+        label.click()
+        print(f"Label com 'for'='{valor_for}' clicado com sucesso!")
+    except Exception as e:
+        print(f"Erro ao clicar no label com 'for'='{valor_for}': {str(e)}")
+
+def selecionar_botao_selecionar():
+    """Aguarda e clica no botão 'Selecionar'."""
+    try:
+        botao_selecionar = wait.until(EC.element_to_be_clickable((
+            By.XPATH, "//button[@id='_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_selectLayoutButton'][text()='Selecionar']"
+        )))
+        botao_selecionar.click()
+        print("Botão 'Selecionar' clicado com sucesso.")
+    except Exception as e:
+        print(f"Erro ao selecionar o botão 'Selecionar': {str(e)}")
+
+def mudar_url(nova_url):
+    """Navega para uma nova URL no navegador controlado pelo Selenium."""
+    try:
+        print(f"Acessando a URL: {nova_url}")
+        driver.get(nova_url)
+        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))  # Aguarda o carregamento da página
+        print("Página carregada com sucesso!")
+    except Exception as e:
+        print(f"Erro ao acessar a URL {nova_url}: {str(e)}")
+
+
 
 def criar_pagina(type):
     if type == "Definida":
-        clicar_div_pagina_widget()
-        preencher_input_nome()
-        selecionar_layout_1_coluna()
+        clicar_div_pagina_definida()
+        preencher_input_nome(valor_extraido_pd)
         pegar_conteudo_input_por_id()
+        mudar_url("{url_base}/home")
     elif type == "Widget":
         clicar_div_pagina_widget()
-        preencher_input_nome()
-        verificar_oculto()
+        preencher_input_nome(valor_extraido_pw)
+        selecionar_layout_1_coluna()
+        pegar_conteudo_input_por_id()
+        clicar_label_por_for("_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden") # isso aqui server para clicar no botão de ocultar
     elif type == "Vincular a uma página deste site":
         clicar_div_vincular_pagina_deste_site()
-        preencher_input_nome()
+        preencher_input_nome(valor_extraido_vpds)
+        pegar_conteudo_input_por_id()
+        selecionar_botao_selecionar()
     elif type == "Vincular a uma URL":
         clicar_div_vincular_url()
         preencher_input_nome()
@@ -302,12 +350,16 @@ try:
     clicar_botao_novo()
     # class="dropdown-item" Página
     clicar_link_pagina()
-    valor_p4 = ws["P4"].value
-    valor_extraido = valor_p4.split(": ", 1)[-1]
+    #valor_p4 = ws["P4"].value
+    #valor_extraido = valor_p4.split(": ", 1)[-1]
+    valor_extraido_pd = "Definida"
+    valor_extraido_pw = "Widget"
+    valor_extraido_vpds = "Vincular a uma página deste site"
+    valor_extraido_vurl = "Vincular a uma URL"
 
-    print(f"Valor da célula P4: {valor_extraido}")
+    print(f"Valor da célula P4: {valor_extraido_pw}")
 
-    criar_pagina(valor_extraido)
+    criar_pagina(valor_extraido_pd)
 
 finally:
     #wb.close()
