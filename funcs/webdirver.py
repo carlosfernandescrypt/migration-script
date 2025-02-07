@@ -10,7 +10,7 @@ from selenium.webdriver.common.keys import Keys
 
 # Configurações
 url_base = "http://localhost:8080"
-caminho_planilha = "./planilhas/planilha.xlsx"
+caminho_planilha = "funcs/planilha.xlsx"
 
 # Inicialização do WebDriver
 service = Service(ChromeDriverManager().install())
@@ -52,7 +52,7 @@ def fazer_login():
             (By.ID, "_com_liferay_login_web_portlet_LoginPortlet_password")
         ))
         campo_senha.clear()
-        campo_senha.send_keys("1234")
+        campo_senha.send_keys("admin")
         
         # Clicar no botão de entrar
         print("Clicando no botão de entrar...")
@@ -153,16 +153,50 @@ def clicar_div_vincular_url():
         print(f"Erro ao clicar na div 'Página definida': {str(e)}")
 
 def preencher_input_nome():
-    """Preenche o campo de nome com 'Teste'."""
+    """Muda para o iframe, espera 1 segundo, clica no campo de nome, preenche com 'Teste' e pressiona Enter."""
     try:
-        iframe = wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
-        driver.switch_to.frame(iframe)
-        campo_nome = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='Adicionar nome de página']")))
-        campo_nome.clear()
-        campo_nome.send_keys("Teste")
-        time.sleep(1)
+        time.sleep(1)  # Espera antes de executar a função
+        iframe = wait.until(EC.presence_of_element_located((By.ID, "addLayoutDialog_iframe_")))
+        print("[LOG] Alternando para o iframe...")
+        driver.switch_to.frame(iframe)  # Mudar para dentro do iframe
+        campo_nome = wait.until(EC.element_to_be_clickable(
+            (By.ID, "_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_name")
+        ))
+        campo_nome.click()  # Garante que o campo seja ativado
+        campo_nome.clear()  # Remove qualquer texto anterior
+        campo_nome.send_keys("Teste")  # Digita o texto
+        campo_nome.send_keys(Keys.RETURN)  # Pressiona Enter para confirmar
+        print("[LOG] Campo nome preenchido e Enter pressionado.")
+        
+        # Remova a espera pela próxima página:
+        # print("[LOG] Esperando a próxima página carregar...")
+        # wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".some-element-on-next-page")))  # Não é necessário aguardar agora
+
+        # Agora você pode continuar com o restante do processo sem esperar
+        # Interação com campos na nova página, se necessário
+
+        # Retornar ao contexto principal
+        driver.switch_to.default_content()
+
     except Exception as e:
-        print(f"Erro ao preencher o input de nome: {str(e)}")
+        print(f"[ERRO] Falha ao preencher o campo de nome dentro do iframe: {str(e)}")
+        driver.switch_to.default_content()  # Retorna ao contexto principal mesmo em caso de erro
+
+
+
+def verificar_oculto():
+    """Verifica na coluna H da planilha de controle se a página deve ser oculta."""
+    try:
+        valor_h4 = ws["H4"].value
+        if valor_h4 == "Oculta":
+            print("A página deve ser oculta.")
+            return True
+        else:
+            print("A página não deve ser oculta.")
+            return False
+    except Exception as e:
+        print(f"Erro ao verificar se a página deve ser oculta: {str(e)}")
+        return False
 
 def apertar_enter(campo_input):
     """Simula o pressionamento da tecla Enter no campo de entrada."""
@@ -172,13 +206,88 @@ def apertar_enter(campo_input):
     except Exception as e:
         print(f"Erro ao pressionar Enter: {str(e)}")
 
+def selecionar_pagina_widget():
+    """Aguarda e clica no card 'Página de Widget'."""
+    try:
+        pagina_widget = wait.until(EC.element_to_be_clickable((
+            By.XPATH, "//li[@data-qa-id='cardPageItemDirectory']//p[@title='Página de Widget']"
+        )))
+        pagina_widget.click()
+    except Exception as e:
+        print(f"Erro ao selecionar 'Página de Widget': {str(e)}")
+
+
+def selecionar_layout_1_coluna():
+    """Muda para o iframe, aguarda e clica no card '1 Coluna'."""
+    try:
+        card_1_coluna = wait.until(EC.element_to_be_clickable((
+            By.XPATH, "//div[contains(@class, 'card-type-template')]//span[@title='1 Coluna']"
+        )))
+        card_1_coluna.click()
+
+        driver.switch_to.default_content()
+
+    except Exception as e:
+        driver.switch_to.default_content()
+        print(f"Erro ao selecionar o layout '1 Coluna': {str(e)}")
+
+def pegar_conteudo_input_por_tag_e_class():
+    """Obtém o conteúdo de um campo de entrada (input) usando tags e classes."""
+    try:
+        # Localiza o campo de input usando a classe e a tag
+        campo_input = wait.until(EC.presence_of_element_located((
+            By.XPATH, "//div[@class='input-group-item']//input[@class='form-control language-value']"
+        )))
+        
+        # Pega o valor do campo de entrada
+        valor = campo_input.get_attribute('value')
+        print(f"Valor do campo de entrada: {valor}")
+        return valor
+    except Exception as e:
+        print(f"Erro ao pegar o conteúdo do campo de entrada: {str(e)}")
+        return None
+
+def pegar_conteudo_input_por_id():
+    """Obtém o conteúdo de um campo de entrada (input) pelo ID."""
+    try:
+        # Localiza o campo de input pelo ID
+        campo_input = wait.until(EC.presence_of_element_located((
+            By.ID, "_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_friendlyURL"
+        )))
+        
+        # Pega o valor do campo de entrada
+        valor = campo_input.get_attribute('value')
+        print(f"Valor do campo de entrada: {valor}")
+        return valor
+    except Exception as e:
+        print(f"Erro ao pegar o conteúdo do campo de entrada: {str(e)}")
+        return None
+
+def pegar_botao_salvar():
+    """Obtém o botão 'Salvar' dentro da div com a classe 'sheet-footer'."""
+    try:
+        # Localiza o botão "Salvar" usando XPath
+        botao_salvar = wait.until(EC.presence_of_element_located((
+            By.XPATH, "//div[@class='sheet-footer']//button[@class='btn btn-primary']//span[text()='Salvar']"
+        )))
+        
+        # Clique no botão
+        botao_salvar.click()
+        print("Botão 'Salvar' clicado com sucesso!")
+    except Exception as e:
+        print(f"Erro ao localizar ou clicar no botão 'Salvar': {str(e)}")
+
+
 def criar_pagina(type):
     if type == "Definida":
-        clicar_div_pagina_definida()
+        clicar_div_pagina_widget()
         preencher_input_nome()
+        selecionar_layout_1_coluna()
+        pegar_conteudo_input_por_id()
     elif type == "Widget":
         clicar_div_pagina_widget()
         preencher_input_nome()
+        verificar_oculto()
     elif type == "Vincular a uma página deste site":
         clicar_div_vincular_pagina_deste_site()
         preencher_input_nome()
@@ -201,5 +310,5 @@ try:
     criar_pagina(valor_extraido)
 
 finally:
-    wb.close()
+    #wb.close()
     print("Planilha fechada.")
