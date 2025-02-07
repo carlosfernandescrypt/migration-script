@@ -10,7 +10,7 @@ from selenium.webdriver.common.keys import Keys
 
 # Configurações
 url_base = "http://localhost:8080"
-caminho_planilha = "funcs/planilha.xlsx"
+caminho_planilha = "planilha.xlsx"
 
 # Inicialização do WebDriver
 service = Service(ChromeDriverManager().install())
@@ -52,7 +52,7 @@ def fazer_login():
             (By.ID, "_com_liferay_login_web_portlet_LoginPortlet_password")
         ))
         campo_senha.clear()
-        campo_senha.send_keys("admin")
+        campo_senha.send_keys("1234")
         
         # Clicar no botão de entrar
         print("Clicando no botão de entrar...")
@@ -152,7 +152,7 @@ def clicar_div_vincular_url():
     except Exception as e:
         print(f"Erro ao clicar na div 'Página definida': {str(e)}")
 
-def preencher_input_nome():
+def preencher_input_nome(nome_pagina):
     """Muda para o iframe, espera 1 segundo, clica no campo de nome, preenche com 'Teste' e pressiona Enter."""
     try:
         time.sleep(1)  # Espera antes de executar a função
@@ -164,7 +164,7 @@ def preencher_input_nome():
         ))
         campo_nome.click()  # Garante que o campo seja ativado
         campo_nome.clear()  # Remove qualquer texto anterior
-        campo_nome.send_keys("Teste")  # Digita o texto
+        campo_nome.send_keys(nome_pagina)  # Digita o texto
         campo_nome.send_keys(Keys.RETURN)  # Pressiona Enter para confirmar
         print("[LOG] Campo nome preenchido e Enter pressionado.")
         
@@ -215,6 +215,8 @@ def selecionar_pagina_widget():
         pagina_widget.click()
     except Exception as e:
         print(f"Erro ao selecionar 'Página de Widget': {str(e)}")
+
+
 
 
 def selecionar_layout_1_coluna():
@@ -280,14 +282,14 @@ def pegar_botao_salvar():
 
 def criar_pagina(type):
     if type == "Definida":
-        clicar_div_pagina_widget()
-        preencher_input_nome()
-        selecionar_layout_1_coluna()
+        clicar_div_pagina_definida()
+        preencher_input_nome(valor_extraido_pd)
         pegar_conteudo_input_por_id()
     elif type == "Widget":
         clicar_div_pagina_widget()
-        preencher_input_nome()
-        verificar_oculto()
+        preencher_input_nome(valor_extraido_pw)
+        selecionar_layout_1_coluna()
+        pegar_conteudo_input_por_id()
     elif type == "Vincular a uma página deste site":
         clicar_div_vincular_pagina_deste_site()
         preencher_input_nome()
@@ -302,12 +304,14 @@ try:
     clicar_botao_novo()
     # class="dropdown-item" Página
     clicar_link_pagina()
-    valor_p4 = ws["P4"].value
-    valor_extraido = valor_p4.split(": ", 1)[-1]
+    #valor_p4 = ws["P4"].value
+    #valor_extraido = valor_p4.split(": ", 1)[-1]
+    valor_extraido_pd = "Definida"
+    valor_extraido_pw = "Widget"
 
-    print(f"Valor da célula P4: {valor_extraido}")
+    print(f"Valor da célula P4: {valor_extraido_pw}")
 
-    criar_pagina(valor_extraido)
+    criar_pagina(valor_extraido_pw)
 
 finally:
     #wb.close()
