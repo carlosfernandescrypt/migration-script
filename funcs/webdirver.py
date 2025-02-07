@@ -192,16 +192,23 @@ def preencher_input_nome():
 def verificar_oculto():
     """Verifica na coluna H da planilha de controle se a página deve ser oculta."""
     try:
-        valor_h4 = ws["H4"].value
+        valor_h4 = ws["H3"].value
+        print(valor_h4)
         if valor_h4 == "Oculta":
             print("A página deve ser oculta.")
-            return True
+            # Clica no botão de ocultar a página
+            label_ocultar = wait.until(EC.element_to_be_clickable(
+                (By.XPATH, "//label[@for='_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_hidden']")
+            ))
+            label_ocultar.click()
+            print("Página oculta com sucesso.")
         else:
             print("A página não deve ser oculta.")
-            return False
+        return valor_h4 == "Oculta"  # Retorna True se a página deve ser oculta, False caso contrário
     except Exception as e:
         print(f"Erro ao verificar se a página deve ser oculta: {str(e)}")
         return False
+
 
 def apertar_enter(campo_input):
     """Simula o pressionamento da tecla Enter no campo de entrada."""
@@ -215,6 +222,7 @@ def criar_pagina(type):
     if type == "Definida":
         clicar_div_pagina_definida()
         preencher_input_nome()
+        time.sleep(1)
         verificar_oculto()
     elif type == "Widget":
         clicar_div_pagina_widget()
